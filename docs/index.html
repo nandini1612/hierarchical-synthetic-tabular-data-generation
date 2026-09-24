@@ -62,6 +62,7 @@
   nav.sec a{font-size:12.5px;color:var(--muted);text-decoration:none;
     padding:6px 9px;border-radius:7px;white-space:nowrap}
   nav.sec a:hover{color:var(--ink);background:var(--surface)}
+  nav.sec a.nav-guide{color:var(--accent);font-weight:500}
 
   /* hero */
   .hero{padding-block:100px 64px}
@@ -81,6 +82,13 @@
     display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
   .credit .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;
     border:1px solid var(--line-strong);border-radius:20px;padding:4px 11px}
+  .hero-by{margin-top:20px;font-size:14.5px;color:var(--muted)}
+  .hero-by b{color:var(--ink);font-weight:500}
+
+  figure.arch{margin:32px 0 8px;background:var(--surface);border:1px solid var(--line);
+    border-radius:14px;padding:24px 20px;box-shadow:var(--shadow)}
+  figure.arch svg{max-width:100%;height:auto;display:block;margin:0 auto}
+  figure.arch figcaption{font-size:12.5px;color:var(--muted);margin-top:16px;text-align:center}
 
   section{padding-block:76px;border-top:1px solid var(--line)}
   .kicker{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.1em;
@@ -270,6 +278,7 @@
     <a href="#generate">Generate</a>
     <a href="#leak">Key finding</a>
     <a href="#free">Cost</a>
+    <a href="guide.html" class="nav-guide">Guide →</a>
   </nav>
 </div></header>
 
@@ -280,6 +289,7 @@
     <div class="eyebrow">Synthetic tabular data · logical validity</div>
     <h1>Synthetic data that can’t exist in real life — caught and fixed.</h1>
     <p class="lede">Standard metrics grade synthetic data column by column, so a record can pass every check and still be impossible. This is a drop-in layer that <b>flags logically impossible rows and repairs them to zero</b> — with no training, no GPU, and no change to your generator.</p>
+    <p class="hero-by">By <b>Nandini Saxena</b> &amp; <b>Snigdha Sarkar</b> — extending the H-TDBU framework of Nie, Jin &amp; Chen (2026).</p>
     <div class="hero-cta">
       <a class="btn-primary" href="#generate">Generate data live →</a>
       <a class="btn-ghost" href="#leak">See the key finding</a>
@@ -328,7 +338,43 @@
   <section id="how">
     <p class="kicker">How it works</p>
     <h2>Three stages, dropped in between generation and scoring</h2>
-    <p>It changes no existing code and does no machine learning — just boolean checks, one similarity lookup, and a loop that settles. That keeps it generator-agnostic and fast.</p>
+    <p>It changes no existing code and does no machine learning — just boolean checks, one similarity lookup, and a loop that settles. That keeps it generator-agnostic and fast. Our additions are highlighted below; the baseline generator and evaluation are untouched.</p>
+
+    <figure class="arch">
+      <svg viewBox="0 0 760 208" width="100%" role="img" aria-label="Architecture: real data to generator to our detect-and-repair layer to evaluation">
+        <defs>
+          <marker id="ar1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"></path>
+          </marker>
+        </defs>
+        <rect x="8" y="77" width="116" height="54" rx="10" fill="var(--paper)" stroke="var(--line-strong)"></rect>
+        <text x="66" y="99" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" fill="var(--ink)">Real seed</text>
+        <text x="66" y="115" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" fill="var(--ink)">data</text>
+        <line x1="126" y1="104" x2="156" y2="104" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#ar1)"></line>
+        <rect x="158" y="68" width="134" height="72" rx="10" fill="var(--paper)" stroke="var(--line-strong)"></rect>
+        <text x="225" y="90" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" fill="var(--ink)">Generator</text>
+        <text x="225" y="108" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">independent /</text>
+        <text x="225" y="122" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">RF / XGBoost</text>
+        <text x="225" y="156" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--muted)">baseline · unchanged</text>
+        <line x1="294" y1="104" x2="324" y2="104" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#ar1)"></line>
+        <rect x="324" y="34" width="208" height="140" rx="13" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"></rect>
+        <text x="428" y="55" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--accent)" letter-spacing="1.2">OUR CONTRIBUTION</text>
+        <rect x="340" y="66" width="176" height="40" rx="8" fill="var(--surface)" stroke="var(--line)"></rect>
+        <text x="428" y="83" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" fill="var(--ink)">1 · Detector</text>
+        <text x="428" y="98" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">→ violation_rate</text>
+        <rect x="340" y="114" width="176" height="46" rx="8" fill="var(--surface)" stroke="var(--line)"></rect>
+        <text x="428" y="131" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" fill="var(--ink)">2 · Repair</text>
+        <text x="428" y="146" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--muted)">det / kNN / canonical · 3 · loop→0</text>
+        <line x1="534" y1="104" x2="564" y2="104" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#ar1)"></line>
+        <rect x="566" y="68" width="132" height="72" rx="10" fill="var(--paper)" stroke="var(--line-strong)"></rect>
+        <text x="632" y="90" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" fill="var(--ink)">Evaluation</text>
+        <text x="632" y="108" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">TSTR · fidelity</text>
+        <text x="632" y="122" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">XModal · violations</text>
+        <text x="632" y="156" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--muted)">baseline · unchanged</text>
+      </svg>
+      <figcaption>Repair is a self-contained stage between an unchanged generator and unchanged evaluation — so it works after any generator.</figcaption>
+    </figure>
+
     <div class="pipe">
       <div class="stage">
         <div class="n">01 · detector</div>
@@ -525,10 +571,18 @@
     </div>
   </section>
 
+  <section id="learn" style="text-align:center">
+    <p class="kicker" style="display:inline-block">Go deeper</p>
+    <h2 style="margin-inline:auto">Read the full project guide</h2>
+    <p class="sub" style="margin-inline:auto">Motivation, the H-TDBU background, the architecture, how every piece works and why, the full experimental design and results, limitations, and real-world applications.</p>
+    <div style="margin-top:24px"><a class="btn-primary" href="guide.html">Open the guide →</a></div>
+  </section>
+
 </div>
 </main>
 
 <footer><div class="wrap">
+  <span><b>By</b> Nandini Saxena &amp; Snigdha Sarkar</span>
   <span><b>Extends</b> H-TDBU (Nie, Jin &amp; Chen, ICML 2026)</span>
   <span><b>Seeds</b> 42 · 123 · 2024</span>
   <span><b>Repair</b> deterministic + k-NN + canonical, ≤3 passes</span>
