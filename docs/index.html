@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Validity Gap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#f6f7f6; --surface:#ffffff; --ink:#14181b; --muted:#59636a;
+    --line:#e0e4e2; --line-strong:#c9cfcc;
+    --accent:#0d7d74;            /* teal: repair / honest */
+    --accent-soft:#d3e8e5;
+    --violation:#c0402b;         /* brick: logically impossible */
+    --violation-soft:#f0d6cf;
+    --valid:#2f7d4f;             /* green: valid */
+    --leak:#b07610;              /* amber: leakage */
+    --leak-soft:#f0e2c6;
+    --shadow:0 1px 2px rgba(20,24,27,.05),0 8px 24px -12px rgba(20,24,27,.14);
+    color-scheme:light;
+  }
+  :root:not([data-theme="light"]){ @media (prefers-color-scheme:dark){
+    --paper:#0e1113; --surface:#161a1c; --ink:#eef1f0; --muted:#98a2a0;
+    --line:#262b2d; --line-strong:#38403f;
+    --accent:#33b3a6; --accent-soft:#123c39;
+    --violation:#e0705c; --violation-soft:#3a201b;
+    --valid:#5db97e; --leak:#e0a94a; --leak-soft:#3a2f16;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --paper:#0e1113; --surface:#161a1c; --ink:#eef1f0; --muted:#98a2a0;
+    --line:#262b2d; --line-strong:#38403f;
+    --accent:#33b3a6; --accent-soft:#123c39;
+    --violation:#e0705c; --violation-soft:#3a201b;
+    --valid:#5db97e; --leak:#e0a94a; --leak-soft:#3a2f16;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding-inline:20px;padding-block:0}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  h1,h2,h3{font-family:"Spectral",Georgia,serif;font-weight:600;line-height:1.15;
+    text-wrap:balance;letter-spacing:-.01em}
+  a{color:var(--accent)}
+
+  /* header */
+  header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+    background:color-mix(in srgb,var(--paper) 88%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .top .wrap{display:flex;align-items:center;gap:16px;height:54px}
+  .brand{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .brand b{color:var(--ink);font-weight:500}
+  nav.sec{margin-left:auto;display:flex;gap:4px;overflow-x:auto}
+  nav.sec a{font-size:12.5px;color:var(--muted);text-decoration:none;
+    padding:6px 9px;border-radius:7px;white-space:nowrap}
+  nav.sec a:hover{color:var(--ink);background:var(--surface)}
+
+  /* hero */
+  .hero{padding-block:100px 64px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:22px}
+  .hero h1{font-size:clamp(36px,6.6vw,60px);margin:0 0 24px;line-height:1.08}
+  .hero .lede{font-size:clamp(17px,2.4vw,21px);color:var(--muted);max-width:60ch;margin:0;line-height:1.55}
+  .hero .lede b{color:var(--ink);font-weight:500}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+  .btn-primary,.btn-ghost{text-decoration:none;font-size:14.5px;font-weight:500;
+    padding:12px 22px;border-radius:11px;font-family:"IBM Plex Sans",sans-serif;transition:.15s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{filter:brightness(1.07)}
+  .btn-ghost{color:var(--ink);border:1px solid var(--line-strong)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .credit{margin-top:40px;font-size:13px;color:var(--muted);
+    display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+  .credit .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;
+    border:1px solid var(--line-strong);border-radius:20px;padding:4px 11px}
+
+  section{padding-block:76px;border-top:1px solid var(--line)}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+  section h2{font-size:clamp(25px,3.6vw,34px);margin:0 0 20px}
+  section p{max-width:66ch;line-height:1.68}
+  .sub{color:var(--muted)}
+  .subhead{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin:40px 0 4px}
+
+  /* impossible row */
+  .row-demo{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:28px;margin-top:32px}
+  .row-demo .caption{font-size:13px;color:var(--muted);margin:0 0 18px}
+  .chips{display:flex;flex-wrap:wrap;gap:14px}
+  .chip{flex:1 1 200px;border:1px solid var(--line-strong);border-radius:12px;
+    padding:14px 16px;background:var(--paper)}
+  .chip .col{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);
+    letter-spacing:.03em}
+  .chip .val{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500;margin:2px 0 6px}
+  .chip .say{font-size:13px;color:var(--muted)}
+  .chip .ok{display:inline-block;margin-top:8px;font-size:11px;font-family:"IBM Plex Mono",monospace;
+    color:var(--valid);border:1px solid color-mix(in srgb,var(--valid) 40%,var(--line));
+    border-radius:20px;padding:2px 8px}
+  .verdict{display:flex;gap:12px;align-items:flex-start;margin-top:18px;
+    padding:14px 16px;border-radius:12px;background:var(--violation-soft);
+    border:1px solid color-mix(in srgb,var(--violation) 35%,transparent)}
+  .verdict .x{font-family:"IBM Plex Mono",monospace;color:var(--violation);font-weight:600;flex:none}
+  .verdict p{margin:0;font-size:14px;max-width:none}
+  .verdict b{color:var(--violation)}
+
+  /* pipeline */
+  .pipe{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:32px}
+  .stage{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:22px;box-shadow:var(--shadow)}
+  .stage .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
+  .stage h3{font-size:18px;margin:8px 0 10px}
+  .stage p{font-size:13.5px;color:var(--muted);margin:0;max-width:none;line-height:1.6}
+  .stage .how{margin-top:14px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+    color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 9px;display:inline-block}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
+  .mode{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--paper)}
+  .mode h3{font-size:16px;margin:0 0 8px}
+  .mode.knn h3{color:var(--leak)} .mode.canon h3{color:var(--accent)}
+  .mode p{font-size:13px;color:var(--muted);margin:0;max-width:none}
+
+  /* charts */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:28px;margin-top:30px}
+  .card .head{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  .card h3{font-size:18px;margin:0}
+  .card .note{font-size:12.5px;color:var(--muted)}
+  figure{margin:0}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:18px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .toggle{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden}
+  .toggle button{font-family:"IBM Plex Mono",monospace;font-size:12px;border:0;background:transparent;
+    color:var(--muted);padding:6px 12px;cursor:pointer}
+  .toggle button[aria-pressed="true"]{background:var(--accent);color:#fff}
+
+  .callout{margin-top:26px;border-left:3px solid var(--accent);padding:6px 0 6px 20px}
+  .callout .big{font-family:"Spectral",serif;font-size:clamp(19px,2.6vw,24px);margin:0 0 6px;font-weight:600}
+  .callout p{margin:0;font-size:14px;color:var(--muted)}
+
+  /* cost table */
+  table{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px}
+  th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line)}
+  th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);font-weight:500}
+  td.n{font-family:"IBM Plex Mono",monospace;text-align:right;font-variant-numeric:tabular-nums}
+  .barcell{position:relative}
+  .barcell .fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:20px;
+    border-radius:4px;background:var(--accent-soft)}
+  .barcell span{position:relative;font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+  .tblwrap{overflow-x:auto}
+
+  /* interactive demo */
+  .demo{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:28px;margin-top:30px}
+  .demo .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.03em;color:var(--accent)}
+  .fld .hint{font-size:11px;color:var(--muted)}
+  .fld input,.fld select{font-family:"IBM Plex Mono",monospace;font-size:15px;
+    background:var(--paper);color:var(--ink);border:1px solid var(--line-strong);
+    border-radius:9px;padding:9px 11px;width:100%}
+  .fld input:focus,.fld select:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .fld.flash input,.fld.flash select{animation:flash .9s ease}
+  @keyframes flash{0%{background:var(--leak-soft);border-color:var(--leak)}100%{}}
+  .fld.flash-c input,.fld.flash-c select{animation:flashc .9s ease}
+  @keyframes flashc{0%{background:var(--accent-soft);border-color:var(--accent)}100%{}}
+
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 4px}
+  .presets button,.acts button{font-family:"IBM Plex Sans",sans-serif;font-size:13px;
+    border:1px solid var(--line-strong);background:var(--paper);color:var(--ink);
+    border-radius:9px;padding:8px 13px;cursor:pointer}
+  .presets button:hover,.acts button:hover{border-color:var(--accent);color:var(--accent)}
+
+  .statusbar{display:flex;align-items:center;gap:12px;margin:26px 0 8px;flex-wrap:wrap}
+  .verdict-pill{font-family:"IBM Plex Mono",monospace;font-size:14px;font-weight:600;
+    padding:7px 14px;border-radius:22px;display:inline-flex;align-items:center;gap:8px}
+  .verdict-pill.bad{background:var(--violation-soft);color:var(--violation);
+    border:1px solid color-mix(in srgb,var(--violation) 40%,transparent)}
+  .verdict-pill.good{background:color-mix(in srgb,var(--valid) 14%,var(--surface));color:var(--valid);
+    border:1px solid color-mix(in srgb,var(--valid) 40%,transparent)}
+  .rules{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px}
+  .rules li{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;line-height:1.45}
+  .rules .mark{font-family:"IBM Plex Mono",monospace;font-weight:600;flex:none;width:16px;text-align:center}
+  .rules li.viol .mark{color:var(--violation)} .rules li.ok .mark{color:var(--valid)}
+  .rules li.ok{color:var(--muted)} .rules li.viol{color:var(--ink)}
+  .rules .rid{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
+
+  .acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  .acts button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .acts button.leak{background:var(--leak);color:#fff;border-color:var(--leak)}
+  .acts button.primary:hover,.acts button.leak:hover{filter:brightness(1.06);color:#fff}
+  .explain{margin-top:16px;font-size:13.5px;border-radius:12px;padding:14px 16px;display:none}
+  .explain.show{display:block}
+  .explain.leak{background:var(--leak-soft);border:1px solid color-mix(in srgb,var(--leak) 35%,transparent)}
+  .explain.canon{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+  .explain b{color:var(--ink)} .explain .mono{font-size:12.5px}
+
+  /* generator */
+  .genctl{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+  .genctl .fld{min-width:120px}
+  .genctl input,.genctl select{min-width:110px}
+  .genbar{height:26px;border-radius:6px;background:var(--paper);border:1px solid var(--line);
+    overflow:hidden;display:flex;margin-top:4px}
+  .genbar .seg{height:100%;display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden}
+  .genbar .viol{background:var(--violation)} .genbar .ok{background:var(--valid)}
+  .barlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
+    font-family:"IBM Plex Mono",monospace;margin-top:5px}
+  .tablewrap{margin-top:16px;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  table.gen{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:11.5px;margin:0}
+  table.gen th{position:sticky;top:0;background:var(--surface);z-index:1;text-align:right;
+    padding:8px 9px;border-bottom:1px solid var(--line-strong);color:var(--muted);
+    font-weight:500;letter-spacing:0;text-transform:none;font-size:10.5px}
+  table.gen th:first-child{text-align:center}
+  table.gen td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.gen td:first-child{text-align:center}
+  table.gen tr.bad td{background:var(--violation-soft)}
+  table.gen tr.bad td:first-child{color:var(--violation);font-weight:600}
+  table.gen tr.fixed td{background:color-mix(in srgb,var(--valid) 10%,transparent)}
+  .genfoot{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--muted);margin-top:12px;align-items:center}
+  .chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+
+  /* claim */
+  .claim{background:linear-gradient(180deg,var(--surface),var(--paper));
+    border:1px solid var(--line-strong);border-radius:18px;padding:34px;margin-top:8px;box-shadow:var(--shadow)}
+  .claim h2{margin-top:0}
+  .claim .thesis{font-family:"Spectral",serif;font-size:clamp(18px,2.7vw,23px);
+    line-height:1.5;font-style:italic;color:var(--ink);max-width:62ch}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px}
+  .yn{border-radius:12px;padding:20px;border:1px solid var(--line)}
+  .yn.pos{background:color-mix(in srgb,var(--valid) 9%,var(--surface))}
+  .yn.neg{background:color-mix(in srgb,var(--leak) 9%,var(--surface))}
+  .yn h4{margin:0 0 6px;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .yn.pos h4{color:var(--valid)} .yn.neg h4{color:var(--leak)}
+  .yn ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--muted)}
+  .yn li{margin:3px 0}
+
+  footer{border-top:1px solid var(--line);padding-block:34px 60px;color:var(--muted);font-size:13px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:8px 26px}
+  footer b{color:var(--ink);font-weight:500}
+
+  @media (max-width:640px){
+    .pipe{grid-template-columns:1fr}
+    .modes,.grid2{grid-template-columns:1fr}
+    nav.sec{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<header class="top"><div class="wrap">
+  <div class="brand"><b>Constraint&nbsp;Repair</b> · validity layer for synthetic data</div>
+  <nav class="sec">
+    <a href="#gap">Problem</a>
+    <a href="#how">How it works</a>
+    <a href="#try">Try it</a>
+    <a href="#generate">Generate</a>
+    <a href="#leak">Key finding</a>
+    <a href="#free">Cost</a>
+  </nav>
+</div></header>
+
+<main>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Synthetic tabular data · logical validity</div>
+    <h1>Synthetic data that can’t exist in real life — caught and fixed.</h1>
+    <p class="lede">Standard metrics grade synthetic data column by column, so a record can pass every check and still be impossible. This is a drop-in layer that <b>flags logically impossible rows and repairs them to zero</b> — with no training, no GPU, and no change to your generator.</p>
+    <div class="hero-cta">
+      <a class="btn-primary" href="#generate">Generate data live →</a>
+      <a class="btn-ghost" href="#leak">See the key finding</a>
+    </div>
+    <div class="credit">
+      <span class="tag">Bank Marketing · Adult · German Credit</span>
+      <span class="tag">3 generators × 3 repair modes × 3 seeds</span>
+      <span class="tag">CPU-only</span>
+    </div>
+  </div>
+
+  <section id="gap">
+    <p class="kicker">The problem</p>
+    <h2>Statistical fidelity ≠ logical validity</h2>
+    <p>Synthetic-data quality is measured column by column — distributions, correlations, downstream accuracy. None of it asks whether a single row holds together. So a generator can pass every metric and still produce records that could never exist. The framework we build on (H-TDBU) names this problem but never solves it. Here is one real example — three fields that are each fine on their own, and impossible together:</p>
+
+    <div class="row-demo">
+      <p class="caption mono">// one synthetic Bank Marketing row</p>
+      <div class="chips">
+        <div class="chip">
+          <div class="col">pdays</div>
+          <div class="val">−1</div>
+          <div class="say">“never previously contacted”</div>
+          <div class="ok">✓ plausible value</div>
+        </div>
+        <div class="chip">
+          <div class="col">previous</div>
+          <div class="val">3</div>
+          <div class="say">“contacted 3 times before”</div>
+          <div class="ok">✓ plausible value</div>
+        </div>
+        <div class="chip">
+          <div class="col">poutcome</div>
+          <div class="val">success</div>
+          <div class="say">“a past campaign succeeded”</div>
+          <div class="ok">✓ plausible value</div>
+        </div>
+      </div>
+      <div class="verdict">
+        <span class="x">✕ impossible</span>
+        <p>You cannot have <b>zero prior contacts</b> and also <b>three prior contacts and a past success</b>. Every column passes on its own; the record is incoherent. No existing fidelity or utility metric flags this.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <p class="kicker">How it works</p>
+    <h2>Three stages, dropped in between generation and scoring</h2>
+    <p>It changes no existing code and does no machine learning — just boolean checks, one similarity lookup, and a loop that settles. That keeps it generator-agnostic and fast.</p>
+    <div class="pipe">
+      <div class="stage">
+        <div class="n">01 · detector</div>
+        <h3>Violation meter</h3>
+        <p>Hand-written logical rules per schema, each a vectorized boolean test over columns. Reports a new <span class="mono">violation_rate</span> the pipeline never had.</p>
+        <div class="how mono">boolean arithmetic</div>
+      </div>
+      <div class="stage">
+        <div class="n">02 · repair</div>
+        <h3>Fix, don’t discard</h3>
+        <p>Discarding invalid rows would delete up to 40% of a weak generator’s output. Instead, edit only the offending columns.</p>
+        <div class="how mono">two strategies →</div>
+      </div>
+      <div class="stage">
+        <div class="n">03 · loop</div>
+        <h3>Settle to zero</h3>
+        <p>Constraints share columns, so a fix can re-break another. Re-sweep until no violations remain — converges in ≤3 passes.</p>
+        <div class="how mono">iterate to fixed point</div>
+      </div>
+    </div>
+
+    <p class="subhead">Stage 2 · two ways to repair</p>
+    <div class="modes">
+      <div class="mode knn">
+        <h3>k-NN repair</h3>
+        <p>When a rule has no single right answer, copy the offending columns from the most similar <b>real</b> record. Minimally invasive — but it borrows real data.</p>
+      </div>
+      <div class="mode canon">
+        <h3>Canonical repair</h3>
+        <p>Fix the row using <b>only its own values</b> — e.g. declare it “never contacted.” Reaches the same validity, injects no real data. This is the honest control.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="try">
+    <p class="kicker">Try it</p>
+    <h2>Edit a row and watch it get checked — and fixed</h2>
+    <p class="sub">Change any field below; the detector re-runs on every keystroke. Then repair it two ways and see exactly what each one touches. Canonical uses only the row’s own logic; k-NN copies from a real record.</p>
+
+    <div class="demo">
+      <div class="row" id="fields"></div>
+
+      <div class="presets" id="presets">
+        <button data-p="impossible">↺ The impossible row</button>
+        <button data-p="messy">Random messy row</button>
+        <button data-p="valid">A valid row</button>
+      </div>
+
+      <div class="statusbar">
+        <span class="verdict-pill" id="verdict"></span>
+        <span class="sub" id="vcount" style="font-size:13px"></span>
+      </div>
+      <ul class="rules" id="rules"></ul>
+
+      <div class="acts">
+        <button class="primary" id="btn-canon">Canonical repair</button>
+        <button class="leak" id="btn-knn">k-NN repair</button>
+        <button id="btn-reset">Reset row</button>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+    <p class="sub" style="font-size:12.5px;margin-top:12px">The rules and both repair strategies here are the same logic as <span class="mono">constraint_repair.py</span>, reimplemented in the browser. k-NN distance runs over the embedded real sample; in the full system it runs over the entire real dataset.</p>
+  </section>
+
+  <section id="generate">
+    <p class="kicker">Generate</p>
+    <h2>Generate a whole batch, then repair it</h2>
+    <p class="sub">This runs a real generator live in your browser — the independent marginal sampler, which draws each column from the real data independently. It naturally produces about 40% impossible rows. Pick a repair mode and watch the batch turn fully valid.</p>
+    <p class="sub" style="font-size:13px;margin-top:-8px">The structured generators (RandomForest, XGBoost) are trained Python models and run in the offline system, not in the browser.</p>
+
+    <div class="demo">
+      <div class="genctl">
+        <div class="fld"><label for="gen-n">rows</label>
+          <input id="gen-n" type="number" value="200" min="10" max="1000" step="10"></div>
+        <div class="fld"><label for="gen-mode">repair</label>
+          <select id="gen-mode">
+            <option value="none">none — raw generator</option>
+            <option value="canonical">canonical (row-only)</option>
+            <option value="knn">k-NN (copies real data)</option>
+          </select></div>
+        <div class="fld"><label>&nbsp;</label>
+          <button id="gen-run" class="primary" style="padding:9px 18px">Generate →</button></div>
+      </div>
+
+      <div class="statusbar" style="margin-top:20px">
+        <span class="verdict-pill" id="gen-verdict">— </span>
+        <span class="sub" id="gen-count" style="font-size:13px"></span>
+      </div>
+      <div id="gen-barwrap" hidden>
+        <div class="genbar" id="gen-bar"></div>
+        <div class="barlabels"><span id="gen-lab-l"></span><span id="gen-lab-r"></span></div>
+      </div>
+
+      <div class="tablewrap" id="gen-table" hidden></div>
+
+      <div class="genfoot" id="gen-foot" hidden>
+        <label class="chk"><input type="checkbox" id="gen-only"> show only impossible rows</label>
+        <span id="gen-changed"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="fix">
+    <p class="kicker">Results · validity</p>
+    <h2>Impossible rows drop to exactly zero</h2>
+    <p>This is the metric that actually moves. How many rows start out impossible depends on how much column structure the generator preserves — but after repair, every generator is fully valid.</p>
+    <div class="card">
+      <div class="head"><h3>Any-violation rate, before vs after repair</h3><span class="note">weak-multimodal · mean of 3 seeds</span></div>
+      <figure id="chart-viol" aria-label="Violation rate before and after repair for three generators, all dropping to zero"></figure>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--violation)"></i>before repair</span>
+        <span><i class="sw" style="background:var(--valid)"></i>after repair (either mode)</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="leak">
+    <p class="kicker">The key finding</p>
+    <h2>The “accuracy boost” from repair is really data leakage</h2>
+    <p>This is the experiment at the heart of the project. On a weak generator, k-NN repair looks like it lifts downstream accuracy. But canonical repair — which reaches the <b>same 0% validity</b> — does not. Same validity, opposite effect. So the movement was never caused by validity; it’s k-NN quietly copying real values into the synthetic set.</p>
+
+    <div class="card">
+      <div class="head">
+        <h3>TSTR AUROC · independent generator</h3>
+        <div class="toggle" id="ds-toggle" role="group" aria-label="dataset">
+          <button data-ds="manual" aria-pressed="true">manual rule</button>
+          <button data-ds="gemini" aria-pressed="false">gemini rule</button>
+        </div>
+      </div>
+      <figure id="chart-leak" aria-label="TSTR AUROC for no repair, k-NN repair, and canonical repair"></figure>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--muted)"></i>no repair</span>
+        <span><i class="sw" style="background:var(--leak)"></i>k-NN — copies real data</span>
+        <span><i class="sw" style="background:var(--accent)"></i>canonical — row-only</span>
+        <span><i class="sw" style="background:var(--line-strong);border:1px dashed var(--muted)"></i>chance = 0.50</span>
+      </div>
+      <div class="callout">
+        <p class="big">Both fixers reach 0% violations. Only the one that touches real data “improves” AUROC.</p>
+        <p>Before the constraint fix, a critic could say “k-NN gained because it repaired more.” Now both repair everything — so the +0.10 is unambiguously leakage, and honest repair (canonical) even dips slightly.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="free">
+    <p class="kicker">Safety &amp; cost</p>
+    <h2>Free on good generators, and cheap everywhere</h2>
+    <p>When a generator already preserves column structure (RandomForest, XGBoost), all three modes score identically within seed noise, and cross-modal alignment is untouched. Repair costs nothing here — so there’s no reason to ever turn it off.</p>
+
+    <div class="card">
+      <div class="head"><h3>TSTR AUROC is flat on structured generators</h3><span class="note">weak-multimodal · Δ within seed noise</span></div>
+      <figure id="chart-free" aria-label="AUROC essentially unchanged across repair arms for RandomForest and XGBoost"></figure>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--muted)"></i>none</span>
+        <span><i class="sw" style="background:var(--leak)"></i>k-NN</span>
+        <span><i class="sw" style="background:var(--accent)"></i>canonical</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><h3>Compute cost — 12,000 rows, one laptop CPU</h3><span class="note">no training · no GPU</span></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Stage</th><th>Time</th><th style="width:42%">Relative to a real generator</th></tr></thead>
+        <tbody id="cost-body"></tbody>
+      </table></div>
+      <p class="sub" style="margin-top:14px;font-size:13px">Detection is essentially free; canonical repair is trivial; even k-NN repair is ~1% of a real generator’s runtime (RandomForest takes ~100 s to generate the same rows). The alternative — discarding invalid rows — would throw away <b>40%</b> of a weak generator’s output.</p>
+    </div>
+  </section>
+
+  <section id="claim">
+    <p class="kicker">The bottom line</p>
+    <div class="claim">
+      <h2>What this actually delivers</h2>
+      <p class="thesis">“Logical validity and statistical utility are separable properties, requiring separate mechanisms. Repair’s job is validity — delivered at ~1% compute overhead and no utility cost. It is not a utility booster, and any apparent boost is real-data leakage, which we demonstrate by construction.”</p>
+      <div class="grid2">
+        <div class="yn pos">
+          <h4>What it is</h4>
+          <ul>
+            <li>A validity layer: 11–40% impossible rows → 0%</li>
+            <li>Free &amp; non-interfering on good generators (utility, fidelity, cross-modal alignment all unchanged)</li>
+            <li>Cheap: detection ~7 ms, CPU-only, no training</li>
+            <li>Better than discarding, which loses 40% of the data</li>
+          </ul>
+        </div>
+        <div class="yn neg">
+          <h4>What it is not</h4>
+          <ul>
+            <li>Not an accuracy improver — deltas sit within seed noise</li>
+            <li>The one apparent gain is provably data leakage</li>
+            <li>Constraints are hand-authored per schema (doesn’t auto-scale)</li>
+            <li>Untested downstream of LLM-based generators — flagged as future work</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<footer><div class="wrap">
+  <span><b>Extends</b> H-TDBU (Nie, Jin &amp; Chen, ICML 2026)</span>
+  <span><b>Seeds</b> 42 · 123 · 2024</span>
+  <span><b>Repair</b> deterministic + k-NN + canonical, ≤3 passes</span>
+  <span><b>Numbers</b> from repair_ablation_v2, verbatim</span>
+</div></footer>
+
+<script>
+(function(){
+  "use strict";
+  // ---- real numbers, from data/processed/repair_ablation_v2 ----
+  const VIOL = [ // before -> after(0) per generator, weak_multimodal
+    {g:"independent",  before:0.3971},
+    {g:"random_forest",before:0.1114},
+    {g:"xgboost",      before:0.1264},
+  ];
+  const LEAK = { // independent arm TSTR AUROC
+    manual:{none:0.4886, knn:0.5921, canonical:0.4482},
+    gemini:{none:0.5311, knn:0.6124, canonical:0.4897},
+  };
+  const FREE = [ // structured generators, weak_multimodal AUROC
+    {g:"RandomForest", none:0.9191, knn:0.9198, canonical:0.9194},
+    {g:"XGBoost",      none:0.9250, knn:0.9251, canonical:0.9250},
+  ];
+  const COST = [
+    {stage:"Detection (violation scan)", ms:7,     rel:7/1296},
+    {stage:"Canonical repair",           ms:38,    rel:38/1296},
+    {stage:"k-NN repair (incl. index)",  ms:1203,  rel:1203/100676, note:"1.2% of RF-gen"},
+    {stage:"— independent generation",   ms:1296,  rel:1296/1296, ref:true},
+    {stage:"— RandomForest generation",  ms:100676,rel:1, ref:true},
+  ];
+
+  const NS="http://www.w3.org/2000/svg";
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+  function svg(w,h){const s=el("svg",{viewBox:`0 0 ${w} ${h}`,width:"100%",role:"img"});s.style.maxWidth="100%";s.style.height="auto";return s;}
+  function txt(x,y,s,o){const t=el("text",Object.assign({x,y},o||{}));t.textContent=s;
+    t.setAttribute("font-family","IBM Plex Mono, monospace");return t;}
+
+  // ---- violation chart: before bar with arrow down to zero ----
+  function drawViol(){
+    const box=document.getElementById("chart-viol");
+    const W=680,H=250,padL=110,padR=24,padT=16,padB=42,n=VIOL.length;
+    const s=svg(W,H); const plotW=W-padL-padR, plotH=H-padT-padB;
+    const bandY0=padT, base=padT+plotH;
+    const maxV=0.45;
+    const y=v=>base - (v/maxV)*plotH;
+    // gridlines
+    [0,0.1,0.2,0.3,0.4].forEach(v=>{
+      s.appendChild(el("line",{x1:padL,x2:W-padR,y1:y(v),y2:y(v),stroke:css("--line"),"stroke-width":1}));
+      s.appendChild(txt(padL-10,y(v)+4,(v*100)+"%",{fill:css("--muted"),"font-size":11,"text-anchor":"end"}));
+    });
+    const bandW=plotW/n, bw=54;
+    VIOL.forEach((d,i)=>{
+      const cx=padL+bandW*i+bandW/2;
+      // before bar
+      const bx=cx-bw-6;
+      s.appendChild(el("rect",{x:bx,y:y(d.before),width:bw,height:base-y(d.before),rx:5,fill:css("--violation")}));
+      s.appendChild(txt(bx+bw/2,y(d.before)-8,(d.before*100).toFixed(0)+"%",{fill:css("--violation"),"font-size":12,"text-anchor":"middle","font-weight":600}));
+      // after bar (0) — a valid baseline marker
+      const ax=cx+6;
+      s.appendChild(el("rect",{x:ax,y:base-3,width:bw,height:3,rx:1.5,fill:css("--valid")}));
+      s.appendChild(txt(ax+bw/2,base-8,"0%",{fill:css("--valid"),"font-size":12,"text-anchor":"middle","font-weight":600}));
+      // arrow
+      const ay0=y(d.before)+ (base-y(d.before))/2;
+      s.appendChild(el("path",{d:`M ${bx+bw+3} ${ay0} L ${ax-3} ${base-14}`,stroke:css("--muted"),"stroke-width":1.3,fill:"none","stroke-dasharray":"3 3","marker-end":"url(#ah)"}));
+      s.appendChild(txt(cx,H-16,d.g,{fill:css("--ink"),"font-size":12,"text-anchor":"middle"}));
+    });
+    const defs=el("defs",{});const mk=el("marker",{id:"ah",markerWidth:7,markerHeight:7,refX:5,refY:3,orient:"auto"});
+    mk.appendChild(el("path",{d:"M0,0 L6,3 L0,6 Z",fill:css("--muted")}));defs.appendChild(mk);s.appendChild(defs);
+    box.replaceChildren(s);
+  }
+
+  // ---- leakage grouped bars ----
+  function drawLeak(ds){
+    const box=document.getElementById("chart-leak");
+    const d=LEAK[ds];
+    const bars=[{k:"no repair",v:d.none,c:css("--muted")},
+                {k:"k-NN",v:d.knn,c:css("--leak")},
+                {k:"canonical",v:d.canonical,c:css("--accent")}];
+    const W=680,H=300,padR=24,padT=20,padB=52;
+    const pl=64;
+    const s=svg(W,H);const plotW=W-pl-padR,plotH=H-padT-padB,base=padT+plotH;
+    const lo=0.30,hi=0.70; const y=v=>base-((v-lo)/(hi-lo))*plotH;
+    [0.3,0.4,0.5,0.6,0.7].forEach(v=>{
+      const dash=Math.abs(v-0.5)<1e-6;
+      s.appendChild(el("line",{x1:pl,x2:W-padR,y1:y(v),y2:y(v),stroke:dash?css("--muted"):css("--line"),"stroke-width":dash?1.4:1,"stroke-dasharray":dash?"5 4":"0"}));
+      s.appendChild(txt(pl-10,y(v)+4,v.toFixed(2),{fill:css("--muted"),"font-size":11,"text-anchor":"end"}));
+    });
+    s.appendChild(txt(W-padR,y(0.5)-7,"chance",{fill:css("--muted"),"font-size":10,"text-anchor":"end"}));
+    const bandW=plotW/bars.length,bw=88;
+    bars.forEach((b,i)=>{
+      const cx=pl+bandW*i+bandW/2, x=cx-bw/2;
+      s.appendChild(el("rect",{x,y:y(b.v),width:bw,height:base-y(b.v),rx:6,fill:b.c}));
+      s.appendChild(txt(cx,y(b.v)-9,b.v.toFixed(3),{fill:b.c,"font-size":14,"text-anchor":"middle","font-weight":600}));
+      // delta vs none
+      if(i>0){const dv=b.v-d.none;const col=dv>=0?css("--leak"):css("--valid");
+        s.appendChild(txt(cx,y(b.v)-26,(dv>=0?"+":"")+dv.toFixed(3),{fill:col,"font-size":11,"text-anchor":"middle"}));}
+      s.appendChild(txt(cx,base+20,b.k,{fill:css("--ink"),"font-size":12.5,"text-anchor":"middle"}));
+      s.appendChild(txt(cx,base+37,"0% viol",{fill:css("--valid"),"font-size":10.5,"text-anchor":"middle"}));
+    });
+    box.replaceChildren(s);
+  }
+
+  // ---- free chart (grouped, near-flat, zoomed y) ----
+  function drawFree(){
+    const box=document.getElementById("chart-free");
+    const W=680,H=250,pl=70,padR=24,padT=20,padB=46;
+    const s=svg(W,H);const plotW=W-pl-padR,plotH=H-padT-padB,base=padT+plotH;
+    const lo=0.90,hi=0.94;const y=v=>base-((v-lo)/(hi-lo))*plotH;
+    [0.90,0.91,0.92,0.93,0.94].forEach(v=>{
+      s.appendChild(el("line",{x1:pl,x2:W-padR,y1:y(v),y2:y(v),stroke:css("--line"),"stroke-width":1}));
+      s.appendChild(txt(pl-10,y(v)+4,v.toFixed(2),{fill:css("--muted"),"font-size":11,"text-anchor":"end"}));
+    });
+    const cols=[["none",css("--muted")],["knn",css("--leak")],["canonical",css("--accent")]];
+    const bandW=plotW/FREE.length,bw=40;
+    FREE.forEach((d,i)=>{
+      const gx=pl+bandW*i+bandW/2;
+      cols.forEach((c,j)=>{
+        const x=gx-bw*1.5-6+ j*(bw+4);
+        const v=d[c[0]];
+        s.appendChild(el("rect",{x,y:y(v),width:bw,height:base-y(v),rx:4,fill:c[1]}));
+      });
+      s.appendChild(txt(gx,base+20,d.g,{fill:css("--ink"),"font-size":12.5,"text-anchor":"middle"}));
+      s.appendChild(txt(gx,base+36,"Δ ≤ 0.001",{fill:css("--muted"),"font-size":10.5,"text-anchor":"middle"}));
+    });
+    box.replaceChildren(s);
+  }
+
+  function drawCost(){
+    const body=document.getElementById("cost-body");
+    const maxRel=1;
+    body.replaceChildren(...COST.map(c=>{
+      const tr=document.createElement("tr");
+      const td1=document.createElement("td");td1.textContent=c.stage;
+      if(c.ref){td1.style.color="var(--muted)";}
+      const td2=document.createElement("td");td2.className="n";
+      td2.textContent = c.ms>=1000 ? (c.ms/1000).toFixed(c.ms>=100000?0:1)+" s" : c.ms+" ms";
+      const td3=document.createElement("td");td3.className="barcell";
+      const fill=document.createElement("span");fill.className="fill";
+      fill.style.width=Math.max(2,(c.rel*100))+"%";
+      fill.style.background=c.ref?"var(--line)":(c.stage.includes("k-NN")?"var(--leak-soft)":"var(--accent-soft)");
+      const lab=document.createElement("span");
+      lab.textContent=c.note || (c.rel>=1?"the real cost":(c.rel*100).toFixed(c.rel<0.02?2:1)+"% of RF-gen");
+      td3.append(fill,lab);
+      tr.append(td1,td2,td3);return tr;
+    }));
+  }
+
+  let curDS="manual";
+  function redraw(){drawViol();drawLeak(curDS);drawFree();drawCost();}
+  redraw();
+
+  document.getElementById("ds-toggle").addEventListener("click",e=>{
+    const b=e.target.closest("button");if(!b)return;
+    curDS=b.dataset.ds;
+    [...e.currentTarget.querySelectorAll("button")].forEach(x=>x.setAttribute("aria-pressed",x===b));
+    drawLeak(curDS);
+  });
+  // recolor on theme change
+  const mq=window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener&&mq.addEventListener("change",redraw);
+})();
+</script>
+
+<script>
+(function(){
+  "use strict";
+  // 48 authentic real rows: [age,balance,day,duration,campaign,pdays,previous,poutcome]
+  const REAL=[[49,682,22,86,4,-1,0,"unknown"],[37,2441,7,248,1,-1,0,"unknown"],[34,0,21,132,3,-1,0,"unknown"],[35,404,6,438,1,-1,0,"unknown"],[35,315,19,70,1,-1,0,"unknown"],[31,1164,18,238,3,-1,0,"unknown"],[48,57,19,134,1,-1,0,"unknown"],[46,291,9,105,4,-1,0,"unknown"],[31,-457,6,270,4,366,2,"failure"],[21,360,26,131,2,-1,0,"unknown"],[37,1624,20,559,2,-1,0,"unknown"],[35,1732,21,1441,3,-1,0,"unknown"],[28,-34,15,355,1,-1,0,"unknown"],[41,669,16,375,2,-1,0,"unknown"],[32,739,2,266,2,-1,0,"unknown"],[36,-195,13,229,1,-1,0,"unknown"],[36,1013,10,111,1,-1,0,"unknown"],[58,1387,5,174,5,-1,0,"unknown"],[42,738,20,20,3,-1,0,"unknown"],[43,-192,8,1120,2,-1,0,"unknown"],[38,2656,8,230,2,-1,0,"unknown"],[79,4738,9,151,5,-1,0,"unknown"],[37,-476,26,149,2,-1,0,"unknown"],[30,-548,28,70,2,-1,0,"unknown"],[28,1536,15,294,3,-1,0,"unknown"],[48,214,18,246,1,162,1,"failure"],[37,1330,29,41,2,261,1,"failure"],[45,159,30,251,2,-1,0,"unknown"],[49,434,18,272,3,-1,0,"unknown"],[40,376,11,268,2,-1,0,"unknown"],[35,608,2,227,1,-1,0,"unknown"],[50,103,3,109,4,267,6,"failure"],[36,844,25,129,1,-1,0,"unknown"],[58,64,21,78,2,-1,0,"unknown"],[60,1339,22,137,1,-1,0,"unknown"],[32,795,8,131,3,-1,0,"unknown"],[46,676,20,825,6,174,4,"failure"],[48,32,17,110,2,-1,0,"unknown"],[53,111,20,39,3,-1,0,"unknown"],[31,283,19,214,2,-1,0,"unknown"],[51,7197,14,45,5,-1,0,"unknown"],[50,2,10,2389,1,-1,0,"unknown"],[40,0,16,368,12,-1,0,"unknown"],[43,3518,15,181,2,-1,0,"unknown"],[49,0,10,564,2,-1,0,"unknown"],[38,1602,3,215,3,-1,0,"unknown"],[38,3289,20,340,2,164,2,"failure"],[43,197,17,48,2,-1,0,"unknown"]];
+  // real-row index map: age0 bal1 day2 dur3 camp4 pdays5 prev6 pout7
+  const IDX={age:0,duration:3,campaign:4,pdays:5,previous:6,poutcome:7};
+  // real marginal pools (240 real values per column) for the independent generator
+  const POOLS={"age":[50,35,55,54,36,74,36,59,39,40,26,38,57,60,29,42,55,28,32,43,49,51,49,60,58,49,56,50,30,43,58,29,44,33,56,33,47,42,41,27,31,25,33,32,44,42,49,42,41,39,47,65,42,67,24,44,35,48,42,60,44,52,41,41,52,51,47,34,34,36,57,38,41,37,60,29,26,38,32,53,37,37,36,59,34,43,52,33,34,45,41,36,42,56,31,33,29,29,46,35,46,42,41,29,79,46,44,37,36,28,54,36,40,48,48,44,36,41,50,40,35,25,41,39,43,35,39,48,42,41,50,58,45,58,51,27,45,45,55,32,31,22,33,33,46,34,52,34,53,42,43,58,33,24,36,54,34,25,29,28,30,53,32,54,36,43,83,51,59,35,28,28,29,43,50,32,36,56,37,41,31,33,31,49,33,57,23,58,64,35,55,57,57,51,42,56,38,30,33,33,51,50,32,37,29,30,48,47,55,35,36,57,35,30,46,29,31,42,51,28,54,40,29,46,37,27,31,51,30,32,43,33,34,29,37,37,47,55,27,37],"job":["management","admin.","blue-collar","management","technician","retired","blue-collar","retired","services","technician","admin.","technician","admin.","retired","admin.","management","retired","self-employed","technician","blue-collar","admin.","technician","technician","retired","retired","services","blue-collar","technician","self-employed","technician","unknown","self-employed","unemployed","blue-collar","retired","admin.","blue-collar","technician","blue-collar","admin.","technician","services","entrepreneur","unemployed","blue-collar","housemaid","admin.","blue-collar","admin.","blue-collar","blue-collar","retired","technician","management","admin.","blue-collar","blue-collar","management","technician","retired","blue-collar","technician","management","technician","entrepreneur","retired","blue-collar","technician","management","self-employed","admin.","blue-collar","admin.","technician","blue-collar","technician","services","technician","admin.","housemaid","services","admin.","management","housemaid","admin.","housemaid","retired","self-employed","management","blue-collar","blue-collar","technician","blue-collar","entrepreneur","management","management","blue-collar","admin.","entrepreneur","blue-collar","technician","admin.","services","unemployed","retired","blue-collar","blue-collar","technician","management","technician","blue-collar","management","technician","management","self-employed","blue-collar","blue-collar","services","housemaid","blue-collar","management","services","self-employed","admin.","management","management","management","management","services","management","blue-collar","retired","management","retired","self-employed","unemployed","blue-collar","management","admin.","services","technician","student","technician","blue-collar","technician","management","entrepreneur","blue-collar","management","blue-collar","management","retired","management","admin.","blue-collar","services","technician","admin.","technician","services","management","admin.","technician","admin.","management","blue-collar","retired","management","unemployed","blue-collar","services","student","management","technician","entrepreneur","blue-collar","self-employed","services","services","services","admin.","student","admin.","blue-collar","blue-collar","admin.","services","entrepreneur","housemaid","services","technician","blue-collar","retired","blue-collar","blue-collar","self-employed","blue-collar","technician","management","admin.","blue-collar","management","management","blue-collar","services","blue-collar","admin.","management","blue-collar","technician","management","management","management","services","blue-collar","technician","blue-collar","management","blue-collar","admin.","entrepreneur","entrepreneur","blue-collar","management","entrepreneur","unemployed","technician","housemaid","management","blue-collar","management","management","technician","blue-collar","services","technician","technician","self-employed","management","technician"],"marital":["married","married","married","married","single","married","married","married","married","divorced","married","single","married","divorced","single","married","married","single","single","married","divorced","single","married","married","married","divorced","divorced","married","single","married","single","single","married","single","married","single","married","married","married","divorced","married","single","married","married","married","married","married","married","married","married","married","married","married","married","single","divorced","single","married","divorced","divorced","married","married","married","divorced","divorced","married","married","married","single","single","married","single","married","married","married","married","married","single","single","divorced","married","single","married","divorced","single","married","married","married","single","divorced","married","married","married","single","single","single","single","single","married","single","divorced","married","married","single","married","single","married","single","married","single","married","single","single","divorced","married","married","married","married","married","married","single","single","married","married","married","married","single","divorced","divorced","married","married","married","divorced","married","married","single","married","married","married","single","single","single","single","single","single","single","divorced","single","divorced","married","married","married","married","single","divorced","married","married","single","single","single","married","married","single","married","single","married","divorced","married","married","married","single","single","single","single","married","married","single","married","married","married","single","single","single","divorced","married","single","single","married","married","married","married","married","married","divorced","married","divorced","married","single","married","married","married","married","married","married","single","single","married","divorced","married","divorced","single","married","single","single","married","single","single","married","married","married","divorced","married","single","divorced","divorced","single","single","married","married","single","single","single","married","single","married","married","married","divorced","single","married"],"education":["secondary","secondary","unknown","secondary","tertiary","primary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","primary","secondary","tertiary","secondary","secondary","secondary","primary","secondary","secondary","secondary","secondary","primary","unknown","primary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","primary","secondary","unknown","secondary","primary","secondary","tertiary","tertiary","tertiary","secondary","secondary","primary","secondary","unknown","secondary","primary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","tertiary","primary","secondary","tertiary","tertiary","secondary","secondary","primary","primary","secondary","secondary","secondary","primary","primary","primary","secondary","secondary","tertiary","secondary","tertiary","secondary","primary","secondary","tertiary","tertiary","secondary","secondary","secondary","secondary","secondary","secondary","primary","primary","secondary","secondary","unknown","tertiary","tertiary","secondary","secondary","secondary","primary","secondary","secondary","secondary","tertiary","primary","primary","secondary","tertiary","secondary","tertiary","primary","tertiary","secondary","tertiary","tertiary","secondary","primary","secondary","secondary","secondary","tertiary","secondary","secondary","secondary","secondary","tertiary","tertiary","secondary","primary","secondary","secondary","secondary","tertiary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","secondary","tertiary","secondary","secondary","tertiary","secondary","secondary","tertiary","unknown","tertiary","tertiary","tertiary","secondary","primary","primary","secondary","secondary","tertiary","secondary","tertiary","secondary","tertiary","primary","tertiary","primary","primary","tertiary","secondary","secondary","secondary","secondary","tertiary","secondary","primary","secondary","tertiary","secondary","secondary","secondary","secondary","unknown","secondary","primary","tertiary","secondary","secondary","secondary","primary","secondary","secondary","secondary","primary","primary","unknown","tertiary","secondary","secondary","tertiary","tertiary","secondary","secondary","tertiary","primary","unknown","secondary","primary","tertiary","secondary","secondary","tertiary","secondary","tertiary","secondary","primary","tertiary","unknown","tertiary","secondary","secondary","unknown","tertiary","primary","secondary","secondary","tertiary","unknown","tertiary","tertiary","secondary","tertiary","tertiary","tertiary","secondary","secondary","tertiary","tertiary","secondary","tertiary","secondary"],"balance":[758,1317,3158,3155,487,398,441,3568,2466,313,155,873,2597,9720,203,0,95,-112,383,340,77,369,1189,48,4,225,259,612,87,-656,0,678,500,220,661,415,547,517,33,4152,387,686,275,574,1433,501,937,2,874,1308,191,1531,876,823,6138,388,1944,524,303,-517,283,70,867,4309,0,76,892,1362,328,3072,54,189,0,3322,0,450,1373,602,-627,276,81,75,767,4450,168,1286,100,46,0,148,2782,770,692,2589,4256,-648,61,254,150,419,44128,0,25,641,1142,4714,3932,53,918,2344,644,594,335,8806,13308,790,0,589,38,1849,2326,2239,10576,193,181,762,260,37127,879,25,8312,2823,-82,335,178,1249,4847,1,1408,156,266,195,997,613,700,1016,-97,1179,987,424,830,906,302,1600,995,1451,1636,87,22086,614,430,2098,480,1482,1938,475,0,5024,652,174,-106,2252,2,290,1055,118,538,23047,-124,3074,264,468,5,2487,19,688,143,446,221,1583,5011,1323,883,124,381,31,278,-76,124,246,1056,308,1640,-1445,12177,8259,-259,362,7606,1146,1267,206,1591,694,795,1632,0,206,14,1165,-70,12223,0,2987,-467,242,1123,334,800,574,292,0,2455,0,890,337,101,9895,784,384],"duration":[236,395,144,99,176,140,135,265,143,172,696,273,49,255,145,224,266,394,164,138,390,79,323,164,48,63,224,47,141,184,33,278,471,220,367,361,365,138,721,67,114,286,82,449,170,94,35,403,93,334,228,187,178,178,241,1032,122,185,143,172,151,393,481,465,191,200,25,46,414,229,268,632,56,588,109,63,119,680,373,62,214,346,62,106,86,44,57,80,150,15,205,178,86,614,121,104,185,202,492,113,74,247,219,334,238,123,40,133,193,371,42,89,566,131,131,579,372,300,119,125,276,133,1224,402,68,163,228,505,176,244,43,74,181,226,253,261,18,200,242,602,72,1297,76,214,69,294,260,150,295,113,211,253,112,117,331,157,301,43,160,9,154,110,189,177,37,110,78,661,50,157,134,394,131,163,59,216,410,530,116,679,494,353,102,206,79,233,167,159,93,100,311,327,166,37,951,136,563,241,367,683,363,137,204,379,76,254,381,274,917,91,82,118,217,599,173,430,262,144,317,244,124,36,89,135,216,510,54,79,103,171,260,82,289,558,157,118,295,356,171,16],"campaign":[1,1,2,3,2,1,4,15,1,16,1,2,2,1,2,3,7,3,11,7,3,5,2,1,1,7,1,1,2,4,2,1,1,1,3,2,2,3,1,4,2,1,1,1,3,2,1,1,2,1,3,2,4,1,2,5,1,3,1,20,2,1,2,2,4,2,5,5,7,3,2,2,2,1,1,4,2,2,2,1,1,2,1,1,2,3,3,2,1,1,1,4,2,1,1,3,1,5,1,1,2,3,1,4,2,1,1,1,2,2,1,2,1,3,1,1,2,8,1,1,1,2,2,6,2,4,1,1,2,3,7,1,2,1,4,5,5,16,1,1,1,1,2,2,2,1,3,1,3,2,11,1,2,1,2,8,4,2,4,1,2,3,5,2,1,1,1,2,1,8,1,1,1,1,5,2,1,5,1,4,2,2,1,7,1,1,6,7,2,2,1,2,10,2,5,2,2,2,1,1,4,1,2,1,1,1,2,1,1,2,1,1,3,3,1,1,6,16,1,3,6,1,3,2,3,2,1,3,2,2,9,1,2,1,3,3,5,1,1,2],"pdays":[-1,-1,-1,-1,-1,-1,-1,-1,281,343,-1,-1,349,-1,-1,-1,-1,-1,-1,-1,-1,-1,199,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,294,-1,-1,263,-1,141,-1,225,-1,-1,-1,-1,-1,-1,-1,-1,-1,367,-1,161,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,183,-1,-1,175,-1,-1,-1,-1,175,-1,-1,-1,-1,-1,-1,-1,-1,355,-1,-1,-1,-1,152,342,-1,-1,-1,-1,-1,-1,172,246,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,350,-1,44,294,177,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,24,-1,-1,-1,-1,106,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,185,-1,-1,-1,-1,-1,-1,99,150,-1,-1,-1,-1,-1,-1,326,174,-1,-1,-1,-1,-1,-1,-1,-1,114,-1,-1,124,165,139,-1,-1,-1,-1,-1,97,-1,133,-1,-1,-1,182,-1,-1,173,-1,-1,-1,-1,-1,289,-1,-1,264,-1,-1,-1,-1,247,-1,-1,-1,-1,-1,-1,306,-1,-1,-1,-1,-1,184,-1,-1,-1,96,-1,198,-1,-1,-1,127,195,-1,-1,-1,-1,-1,355,-1,-1,364],"previous":[0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,0,0,0,0,0,3,0,0,0,0,0,0,0,0,11,4,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,0,3,0,2,1,1,2,0,0,0,0,0,0,0,0,1,4,0,0,0,0,5,0,2,0,0,0,0,0,0,0,0,0,2,0,0,0,9,0,0,0,3,0,0,0,0,0,2,0,0,7,0,0,0,0,23,0,0,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,3,0,17,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,2,0,0,0,0,0,0,5,0,0,9,0,0,0,0,5,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,0],"poutcome":["unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","other","unknown","unknown","unknown","unknown","other","unknown","unknown","unknown","unknown","unknown","success","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","failure","unknown","failure","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","other","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","unknown","failure","other","failure","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","failure","unknown","unknown","unknown","unknown","failure","unknown","other","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","success","unknown","unknown","unknown","success","unknown","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","success","unknown","unknown","other","unknown","unknown","unknown","unknown","other","unknown","unknown","unknown","unknown","unknown","failure","unknown","unknown","unknown","failure","unknown","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","success","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","failure","other","unknown","unknown","unknown","unknown","unknown","unknown","failure","unknown","unknown","failure","unknown","unknown","unknown","unknown","failure","unknown","unknown","failure","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","unknown","other","failure","unknown"]};
+  const GEN_COLS=["age","job","marital","education","balance","duration","campaign","pdays","previous","poutcome"];
+  // standardize over these numeric features for k-NN distance
+  const FEAT=["age","duration","campaign","pdays","previous"];
+  const stat={};
+  FEAT.forEach(f=>{const col=REAL.map(r=>r[IDX[f]]);const m=col.reduce((a,b)=>a+b,0)/col.length;
+    const sd=Math.sqrt(col.reduce((a,b)=>a+(b-m)*(b-m),0)/col.length)||1;stat[f]={m,sd};});
+
+  // ---- constraints (mirror constraint_repair.py) ----
+  const POUT=["unknown","failure","other","success"];
+  const CONS=[
+    {id:"never_contacted_has_history",rid:"C1",
+      label:"Never contacted (pdays = −1) ⇒ no prior history",
+      test:r=>r.pdays===-1 && (r.previous>0 || r.poutcome!=="unknown"),
+      cols:["pdays","previous","poutcome"],
+      canon:r=>({previous:0,poutcome:"unknown"})},
+    {id:"contacted_no_history",rid:"C2",
+      label:"Contacted before (pdays ≥ 0) ⇒ some prior history",
+      test:r=>r.pdays>=0 && r.previous===0 && r.poutcome==="unknown",
+      cols:["pdays","previous","poutcome"],
+      canon:r=>({pdays:-1})},
+    {id:"success_needs_prior",rid:"C3",
+      label:"poutcome = success ⇒ at least one prior contact",
+      test:r=>r.poutcome==="success" && r.previous===0,
+      cols:["pdays","poutcome","previous"],
+      canon:r=>({poutcome:"unknown"})},
+    {id:"age_range",rid:"C4",label:"age within [18, 95]",
+      test:r=>r.age<18||r.age>95,cols:["age"],
+      canon:r=>({age:Math.min(95,Math.max(18,r.age))})},
+    {id:"campaign_pos",rid:"C5",label:"campaign ≥ 1",
+      test:r=>r.campaign<1,cols:["campaign"],canon:r=>({campaign:1})},
+    {id:"duration_nonneg",rid:"C6",label:"duration ≥ 0",
+      test:r=>r.duration<0,cols:["duration"],canon:r=>({duration:0})},
+  ];
+
+  const FIELDS=[
+    {k:"age",hint:"years"},{k:"campaign",hint:"contacts this campaign"},
+    {k:"duration",hint:"call seconds"},{k:"pdays",hint:"−1 = never contacted"},
+    {k:"previous",hint:"prior contacts"},{k:"poutcome",hint:"prior outcome",sel:POUT},
+  ];
+  const PRESETS={
+    impossible:{age:41,campaign:2,duration:210,pdays:-1,previous:3,poutcome:"success"},
+    messy:{age:132,campaign:0,duration:-40,pdays:267,previous:0,poutcome:"unknown"},
+    valid:{age:38,campaign:2,duration:215,pdays:-1,previous:0,poutcome:"unknown"},
+  };
+  let row=Object.assign({},PRESETS.impossible);
+
+  const $=id=>document.getElementById(id);
+  function buildFields(){
+    $("fields").replaceChildren(...FIELDS.map(f=>{
+      const w=document.createElement("div");w.className="fld";w.dataset.k=f.k;
+      const lab=document.createElement("label");lab.textContent=f.k;lab.htmlFor="f-"+f.k;
+      let inp;
+      if(f.sel){inp=document.createElement("select");
+        f.sel.forEach(o=>{const op=document.createElement("option");op.value=op.textContent=o;inp.appendChild(op);});
+      }else{inp=document.createElement("input");inp.type="number";}
+      inp.id="f-"+f.k;inp.value=row[f.k];
+      inp.addEventListener("input",()=>{row[f.k]=f.sel?inp.value:(inp.value===""?0:Number(inp.value));render();});
+      const h=document.createElement("span");h.className="hint";h.textContent=f.hint;
+      w.append(lab,inp,h);return w;
+    }));
+  }
+  function syncInputs(){FIELDS.forEach(f=>{const i=$("f-"+f.k);if(i&&String(i.value)!==String(row[f.k]))i.value=row[f.k];});}
+
+  function violations(r){return CONS.filter(c=>c.test(r));}
+  function render(){
+    const v=violations(row);
+    const pill=$("verdict");
+    if(v.length){pill.className="verdict-pill bad";pill.textContent="✕ IMPOSSIBLE";
+      $("vcount").textContent=v.length+" of 6 rules violated";}
+    else{pill.className="verdict-pill good";pill.textContent="✓ VALID";
+      $("vcount").textContent="all 6 rules satisfied";}
+    $("rules").replaceChildren(...CONS.map(c=>{
+      const bad=c.test(row);const li=document.createElement("li");li.className=bad?"viol":"ok";
+      const m=document.createElement("span");m.className="mark";m.textContent=bad?"✕":"✓";
+      const t=document.createElement("span");t.innerHTML=c.label+' <span class="rid">'+c.rid+'</span>';
+      li.append(m,t);return li;
+    }));
+  }
+  function flash(keys,cls){keys.forEach(k=>{const w=document.querySelector('.fld[data-k="'+k+'"]');
+    if(w){w.classList.remove("flash","flash-c");void w.offsetWidth;w.classList.add(cls);
+      setTimeout(()=>w.classList.remove(cls),900);}});}
+
+  // ---- pure repair cores (mutate row copy, return what changed) ----
+  function canonRepair(r){const changed=new Set();
+    for(let p=0;p<5;p++){const v=violations(r);if(!v.length)break;
+      v.forEach(c=>{const fix=c.canon(r);for(const k in fix){if(r[k]!==fix[k]){r[k]=fix[k];changed.add(k);}}});}
+    return changed;}
+  function nearest(r){let best=-1,bd=Infinity;
+    for(let i=0;i<REAL.length;i++){let d=0;FEAT.forEach(f=>{const z=(r[f]-stat[f].m)/stat[f].sd-(REAL[i][IDX[f]]-stat[f].m)/stat[f].sd;d+=z*z;});
+      if(d<bd){bd=d;best=i;}}return best;}
+  function knnRepair(r){const changed=new Set();let usedIdx=-1;
+    for(let p=0;p<3;p++){const v=violations(r);if(!v.length)break;
+      const ni=nearest(r);usedIdx=ni;const nb=REAL[ni];
+      v.forEach(c=>c.cols.forEach(k=>{const nv=nb[IDX[k]];if(r[k]!==nv){r[k]=nv;changed.add(k);}}));}
+    return {changed,usedIdx};}
+
+  // ---- single-row UI wrappers ----
+  function repairCanonical(){
+    const changed=canonRepair(row);
+    syncInputs();render();flash([...changed],"flash-c");
+    const list=[...changed].map(k=>k+" → "+row[k]).join(", ")||"nothing to change";
+    showExplain("canon","<b>Canonical repair.</b> Edited using only this row’s own logic — no real data touched. Changed: <span class='mono'>"+list+"</span>. This is the honest baseline: it reaches 0 violations without borrowing anything.");
+  }
+  function repairKnn(){
+    const {changed,usedIdx}=knnRepair(row);
+    syncInputs();render();flash([...changed],"flash");
+    const nb=usedIdx>=0?REAL[usedIdx]:null;
+    const list=[...changed].map(k=>k+" → "+row[k]).join(", ")||"nothing to change";
+    let msg="<b>k-NN repair.</b> Copied "+"<span class='mono'>"+list+"</span> from a real record";
+    if(nb)msg+=" (real row #"+(usedIdx+1)+": pdays="+nb[IDX.pdays]+", previous="+nb[IDX.previous]+", poutcome="+nb[IDX.poutcome]+")";
+    msg+=". A genuine real-data combination is now inside your synthetic row — <b>this is the leakage</b> that inflates downstream utility.";
+    showExplain("leak",msg);
+  }
+  function showExplain(kind,html){const e=$("explain");e.className="explain show "+kind;e.innerHTML=html;}
+  function hideExplain(){$("explain").className="explain";}
+
+  $("presets").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+    row=Object.assign({},PRESETS[b.dataset.p]);syncInputs();render();hideExplain();});
+  $("btn-canon").addEventListener("click",repairCanonical);
+  $("btn-knn").addEventListener("click",repairKnn);
+  $("btn-reset").addEventListener("click",()=>{row=Object.assign({},PRESETS.impossible);syncInputs();render();hideExplain();});
+
+  // ============ batch generator ============
+  const gEl={n:$("gen-n"),mode:$("gen-mode"),run:$("gen-run"),verdict:$("gen-verdict"),
+    count:$("gen-count"),barwrap:$("gen-barwrap"),bar:$("gen-bar"),labL:$("gen-lab-l"),
+    labR:$("gen-lab-r"),table:$("gen-table"),foot:$("gen-foot"),only:$("gen-only"),changed:$("gen-changed")};
+  let genRows=[],genFixedIdx=new Set();
+  const pick=arr=>arr[(Math.random()*arr.length)|0];
+  function genOne(){const o={};GEN_COLS.forEach(c=>o[c]=pick(POOLS[c]));return o;}
+  const isBad=r=>violations(r).length>0;
+
+  function runGen(){
+    const n=Math.max(10,Math.min(1000,parseInt(gEl.n.value,10)||200));
+    gEl.n.value=n;
+    genRows=Array.from({length:n},genOne);
+    const badBefore=genRows.filter(isBad).length;
+    const mode=gEl.mode.value;
+    genFixedIdx=new Set();let cellsChanged=0;
+    if(mode!=="none"){
+      genRows.forEach((r,i)=>{
+        const before=isBad(r);
+        const res=mode==="canonical"?{changed:canonRepair(r)}:knnRepair(r);
+        if(before){genFixedIdx.add(i);cellsChanged+=res.changed.size;}
+      });
+    }
+    const badAfter=genRows.filter(isBad).length;
+    paintGen(n,badBefore,badAfter,mode,cellsChanged);
+  }
+
+  function paintGen(n,badBefore,badAfter,mode,cells){
+    const rateB=badBefore/n, rateA=badAfter/n;
+    // verdict pill reflects final state
+    if(badAfter===0){gEl.verdict.className="verdict-pill good";gEl.verdict.textContent="✓ ALL VALID";}
+    else{gEl.verdict.className="verdict-pill bad";gEl.verdict.textContent="✕ "+badAfter+" IMPOSSIBLE";}
+    gEl.count.textContent = mode==="none"
+      ? n+" rows generated · "+badBefore+" impossible ("+(rateB*100).toFixed(0)+"%) · independent generator"
+      : n+" rows · "+badBefore+" impossible → "+badAfter+" after "+mode+" repair";
+    // before/after bar
+    gEl.barwrap.hidden=false;
+    const segs=[];
+    if(mode==="none"){
+      segs.push(`<div class="seg viol" style="width:${(rateB*100).toFixed(2)}%">${badBefore?(rateB*100).toFixed(0)+'% impossible':''}</div>`);
+      segs.push(`<div class="seg ok" style="width:${((1-rateB)*100).toFixed(2)}%">${(100-rateB*100).toFixed(0)}% valid</div>`);
+      gEl.labL.textContent="raw generator output";gEl.labR.textContent="";
+    }else{
+      segs.push(`<div class="seg ok" style="width:100%">100% valid after repair (was ${(rateB*100).toFixed(0)}% impossible)</div>`);
+      gEl.labL.textContent=(rateB*100).toFixed(0)+"% impossible before";
+      gEl.labR.textContent=cells+" cells changed";
+    }
+    gEl.bar.innerHTML=segs.join("");
+    // footer
+    gEl.foot.hidden=false;
+    gEl.changed.textContent = mode==="knn"
+      ? "k-NN copied real values in — utility gains from this are leakage."
+      : (mode==="canonical" ? "canonical repair used no real data." : "");
+    renderTable();
+  }
+
+  function renderTable(){
+    const onlyBad=gEl.only.checked;
+    const rows=genRows.map((r,i)=>({r,i})).filter(x=>!onlyBad||isBad(x.r));
+    const shown=rows.slice(0,300);
+    const head="<tr><th>#</th>"+GEN_COLS.map(c=>"<th>"+c+"</th>").join("")+"</tr>";
+    const body=shown.map(({r,i})=>{
+      const bad=isBad(r);const cls=bad?"bad":(genFixedIdx.has(i)?"fixed":"");
+      const tds=GEN_COLS.map(c=>"<td>"+r[c]+"</td>").join("");
+      return `<tr class="${cls}"><td>${bad?'✕':(genFixedIdx.has(i)?'✓':'')}</td>${tds}</tr>`;
+    }).join("");
+    const more=rows.length>300?`<tr><td colspan="${GEN_COLS.length+1}" style="text-align:center;color:var(--muted);padding:10px">…and ${rows.length-300} more rows</td></tr>`:"";
+    gEl.table.hidden=false;
+    gEl.table.innerHTML=`<table class="gen"><thead>${head}</thead><tbody>${body}${more}</tbody></table>`;
+  }
+
+  gEl.run.addEventListener("click",runGen);
+  gEl.only.addEventListener("change",renderTable);
+
+  buildFields();render();runGen();
+})();
+</script>
+
+</body>
+</html>

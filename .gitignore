@@ -9,3 +9,7 @@ data/raw/*
 .DS_Store
 __pycache__/
 *.py[cod]
+.venv/
+.vscode/
+audit_output.txt
+__pycache__/
