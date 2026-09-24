@@ -58,11 +58,10 @@
   .brand{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--muted);white-space:nowrap}
   .brand b{color:var(--ink);font-weight:500}
-  nav.sec{margin-left:auto;display:flex;gap:4px;overflow-x:auto}
+  nav.sec{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
   nav.sec a{font-size:12.5px;color:var(--muted);text-decoration:none;
     padding:6px 9px;border-radius:7px;white-space:nowrap}
   nav.sec a:hover{color:var(--ink);background:var(--surface)}
-  nav.sec a.nav-guide{color:var(--accent);font-weight:500}
 
   /* hero */
   .hero{padding-block:100px 64px}
@@ -278,7 +277,6 @@
     <a href="#generate">Generate</a>
     <a href="#leak">Key finding</a>
     <a href="#free">Cost</a>
-    <a href="guide.html" class="nav-guide">Guide →</a>
   </nav>
 </div></header>
 
@@ -571,12 +569,6 @@
     </div>
   </section>
 
-  <section id="learn" style="text-align:center">
-    <p class="kicker" style="display:inline-block">Go deeper</p>
-    <h2 style="margin-inline:auto">Read the full project guide</h2>
-    <p class="sub" style="margin-inline:auto">Motivation, the H-TDBU background, the architecture, how every piece works and why, the full experimental design and results, limitations, and real-world applications.</p>
-    <div style="margin-top:24px"><a class="btn-primary" href="guide.html">Open the guide →</a></div>
-  </section>
 
 </div>
 </main>

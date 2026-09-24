@@ -7,7 +7,6 @@
 This repository extends the framework from *Hierarchical Synthetic Tabular Data Generation: A Hybrid Top-Down and Bottom-Up Framework* (Junfeng Nie, Alvin Jin, Xiaohui Chen — USC / AnyFluxion) with a **constraint-repair layer** that detects and repairs logically impossible synthetic rows, and an experiment that separates *logical validity* from *statistical utility*.
 
 - **Interactive showcase:** https://nandini1612.github.io/hierarchical-synthetic-tabular-data-generation/ (also deployable to Vercel — static site in `docs/`)
-- **Deep-dive guide:** [`docs/guide.html`](docs/guide.html)
 - **Baseline we build on:** https://github.com/junfengn-ctrl/hierarchical-synthetic-tabular
 
 ---
@@ -134,7 +133,7 @@ The baseline README's full workflow, evaluation protocol (TRTR/TSTR, fidelity, c
 
 ## The showcase site (`docs/`)
 
-`docs/index.html` is a self-contained static page — no build step. It explains the gap, lets you **edit a row and watch it get validated and repaired**, **generate a synthetic batch in-browser and repair the whole thing**, and shows every result chart (validity → 0, the leakage demo, flat AUROC on strong generators, cost). `docs/guide.html` is the long-form deep dive.
+`docs/index.html` is a self-contained static page — no build step. It explains the gap, lets you **edit a row and watch it get validated and repaired**, **generate a synthetic batch in-browser and repair the whole thing**, and shows every result chart (validity → 0, the leakage demo, flat AUROC on strong generators, cost).
 
 - **GitHub Pages:** Settings → Pages → Deploy from a branch → `main` / `/docs`.
 - **Vercel:** Framework Preset `Other`, Root Directory `docs`, no build command.
