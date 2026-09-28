@@ -1,5 +1,10 @@
 pandas
 numpy
 scikit-learn
+scipy
 xgboost
 sdv
+flask
+# optional — only for the AI rule-elicitation layer (either provider works)
+anthropic
+groq

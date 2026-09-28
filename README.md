@@ -9,6 +9,12 @@ This repository extends the framework from *Hierarchical Synthetic Tabular Data 
 - **Interactive showcase:** https://nandini1612.github.io/hierarchical-synthetic-tabular-data-generation/ (also deployable to Vercel — static site in `docs/`)
 - **Baseline we build on:** https://github.com/junfengn-ctrl/hierarchical-synthetic-tabular
 
+> **Looking for the tool?** This research is packaged as **Verity**, a validity-guaranteed
+> synthetic-data generator for any CSV (rule discovery + AI/plain-language rules,
+> purpose profiles, copula/TVAE/CTGAN generators, and a validity/fidelity/privacy/utility
+> report). See **[VERITY.md](VERITY.md)** — quick start: `python src/verity.py --input your.csv`
+> or the web app `python src/verity_app.py`.
+
 ---
 
 ## The gap we close
